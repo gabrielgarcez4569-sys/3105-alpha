@@ -1,0 +1,43 @@
+workflows:
+  ios-build:
+    name: Build 3105 iOS
+    instance_type: mac_mini_m2
+
+    environment:
+      xcode: latest
+
+    scripts:
+      - name: Descompactar source
+        script: |
+          mkdir -p source
+          unzip -q "3105-2.0-ALPHA-BYPASS.zip" -d source
+          echo "Conteúdo extraído:"
+          find source -maxdepth 3 -type f | head -100
+
+      - name: Encontrar projeto Xcode
+        script: |
+          PROJECT=$(find source -name "*.xcodeproj" -type d | head -1)
+
+          if [ -z "$PROJECT" ]; then
+            echo "ERRO: nenhum .xcodeproj encontrado."
+            exit 1
+          fi
+
+          echo "Projeto encontrado: $PROJECT"
+          echo "PROJECT=$PROJECT" > /tmp/project.txt
+
+      - name: Compilar IPA
+        script: |
+          PROJECT=$(cat /tmp/project.txt)
+
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "3105" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/3105.xcarchive \
+            archive
+
+    artifacts:
+      - build/3105.xcarchive
+      - build/**/*.ipa
